@@ -1,13 +1,12 @@
 import axios from 'axios'
 
 export default class Request {
-  private baseUri: string
   private request: any
 
   constructor(baseUri: string, sessionId?: string) {
-    this.baseUri = baseUri
     const config: { [key: string]: any } = {
       headers: {},
+      baseURL: baseUri,
     }
     if (sessionId) {
       config.headers['X-Openerp-Session-Id'] = sessionId
@@ -17,18 +16,15 @@ export default class Request {
   }
 
   public execute(uri: string, payload?: { [key: string]: any }) {
-    return this.request(this.requestUri(uri), payload || {})
+    return this.request(uri, payload || {})
   }
 
-  private decorateRequest(params: { [key: string]: any}) {
+  private decorateBody(method: string, params: { [key: string]: any}) {
     return {
       jsonrpc: '2.0',
-      method: 'call',
+      method,
       params,
+      id: Math.floor(Math.random() * 1000 * 1000 * 1000),
     }
-  }
-
-  private requestUri(path: string) {
-    return `${this.baseUri}/${path}`
   }
 }

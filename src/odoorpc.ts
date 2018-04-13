@@ -35,12 +35,17 @@ export default class OdooRPC {
 
   public get() {
     return this.request.execute('web/dataset/call_kw', {
-      model: 'res.partner',
+      jsonrpc: '2.0',
       method: 'read',
-      args: [4],
-      kwargs: {
-        fields: ['id'],
+      params: {
+        method: 'read',
+        model: 'res.partner',
+        args: [4],
+        kwargs: {
+          fields: ['id', 'name'],
+        },
       },
+      id: Math.floor(Math.random() * 1000 * 1000 * 1000),
     })
   }
 }

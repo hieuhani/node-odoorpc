@@ -10,6 +10,6 @@ const odoo = new OdooRPC({
 //   console.log(response.data)
 // })
 
-// odoo.get().then((response) => {
-//   console.log(response.data)
-// })
+odoo.get().then((response) => {
+  console.log(response.data)
+})
