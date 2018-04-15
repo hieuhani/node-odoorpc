@@ -28,6 +28,10 @@ export class OdooRPC {
     return localStorage.getItem(this.config.tokenKey)
   }
 
+  public isLoggedUser(): boolean {
+    return !!this.sessionId
+  }
+
   public exchangeToken(login: string, password: string) {
     return this.request.execute('auth/exchange_token', {
       jsonrpc: '2.0',
