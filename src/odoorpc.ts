@@ -1,21 +1,27 @@
+import * as assign from 'lodash.assign'
+import Request, { ServerResponse } from './request'
 import {
+  Environment,
   OdooRPCConfig,
   OdooRPCOptions,
-} from './index'
-import Request from './request'
+  QueryOptions,
+  QueryOutput,
+} from './types'
 
 export default class OdooRPC {
   private options: OdooRPCOptions
   private config: OdooRPCConfig
   private request: Request
+  private env: Environment
 
   constructor(options: OdooRPCOptions, config?: OdooRPCConfig) {
     this.options = options
     this.config = config || {
-      tokenKey: 'access_token',
+      tokenKey: 'session_id',
     }
     const port = this.options.port ? `:${this.options.port}` : ''
     this.request = new Request(`${this.options.domain}${port}`, this.sessionId)
+    this.env = typeof window === 'undefined' ? Environment.Node : Environment.Browser
   }
 
   get sessionId(): string {
@@ -33,19 +39,116 @@ export default class OdooRPC {
     })
   }
 
-  public get() {
-    return this.request.execute('web/dataset/call_kw', {
-      jsonrpc: '2.0',
-      method: 'read',
-      params: {
-        method: 'read',
-        model: 'res.partner',
-        args: [4],
-        kwargs: {
-          fields: ['id', 'name'],
-        },
-      },
-      id: Math.floor(Math.random() * 1000 * 1000 * 1000),
+  public login(login: string, password: string) {
+    this.browserRequired()
+    return this.exchangeToken(login, password).then(({ data }: ServerResponse) => {
+      if (data.result.token) {
+        localStorage.setItem(this.config.tokenKey, data.result.token)
+        return Promise.resolve(true)
+      }
+      throw new Error('Invalid login name or password')
     })
   }
+
+  public checkLoggedUser() {
+    if (!this.sessionId) {
+      throw new Error('Login required')
+    }
+  }
+
+  public query(params: QueryOptions, options?: any): Promise<ServerResponse> {
+    const query = this.buildQuery(params)
+    return this.request.rpc(query.route, query.params, options)
+  }
+
+  private browserRequired() {
+    if (this.env !== Environment.Browser) {
+      throw new Error('Run only on browser mode')
+    }
+  }
+
+  private buildQuery(options: QueryOptions): QueryOutput {
+    let route = ''
+    const params = options.params || {}
+    if (options.route) {
+      route = options.route
+    } else if (options.model && options.method) {
+        route = '/web/dataset/call_kw/' + options.model + '/' + options.method
+    }
+    if (options.method) {
+        params.args = options.args || []
+        params.model = options.model
+        params.method = options.method
+        params.kwargs = assign(params.kwargs, {}, options.kwargs)
+        params.kwargs.context = options.context || params.context || params.kwargs.context
+    }
+
+    if (options.method === 'read_group') {
+      if (!(params.args && params.args[0] !== undefined)) {
+          params.kwargs.domain = options.domain || params.domain || params.kwargs.domain || []
+      }
+      if (!(params.args && params.args[1] !== undefined)) {
+          params.kwargs.fields = options.fields || params.fields || params.kwargs.fields || []
+      }
+      if (!(params.args && params.args[2] !== undefined)) {
+          params.kwargs.groupby = options.groupBy || params.groupBy || params.kwargs.groupby || []
+      }
+      params.kwargs.offset = options.offset || params.offset || params.kwargs.offset
+      params.kwargs.limit = options.limit || params.limit || params.kwargs.limit
+      // In kwargs, we look for "orderby" rather than "orderBy" (note the absence of capital B),
+      // since the Python argument to the actual function is "orderby".
+      const orderBy = options.orderBy || params.orderBy || params.kwargs.orderby
+      params.kwargs.orderby = orderBy ? this.serializeSort(orderBy) : orderBy
+      params.kwargs.lazy = 'lazy' in options ? options.lazy : params.lazy
+    }
+
+    if (options.method === 'search_read') {
+      // call the model method
+      params.kwargs.domain = options.domain || params.domain || params.kwargs.domain
+      params.kwargs.fields = options.fields || params.fields || params.kwargs.fields
+      params.kwargs.offset = options.offset || params.offset || params.kwargs.offset
+      params.kwargs.limit = options.limit || params.limit || params.kwargs.limit
+      // In kwargs, we look for "order" rather than "orderBy" since the Python
+      // argument to the actual function is "order".
+      const orderBy = options.orderBy || params.orderBy || params.kwargs.order
+      params.kwargs.order = orderBy ? this.serializeSort(orderBy) : orderBy
+    }
+
+    if (options.route === '/web/dataset/search_read') {
+        // specifically call the controller
+        params.model = options.model || params.model
+        params.domain = options.domain || params.domain
+        params.fields = options.fields || params.fields
+        params.limit = options.limit || params.limit
+        params.offset = options.offset || params.offset
+        const orderBy = options.orderBy || params.orderBy
+        params.sort = orderBy ? this.serializeSort(orderBy) : orderBy
+        params.context = options.context || params.context || {}
+    }
+
+    return {
+      route,
+      params: JSON.parse(JSON.stringify(params)),
+    }
+  }
+
+  private serializeSort(orderBy: [any]): string {
+    return orderBy.map((order) => `${order.name} ${order.asc !== false ? 'ASC' : 'DESC'}`).join(', ')
+  }
+
+  // public get() {
+  //   return this.request.execute('web/dataset/call_kw', {
+  //     jsonrpc: '2.0',
+  //     method: 'read',
+  //     params: {
+  //       method: 'read',
+  //       model: 'res.partner',
+  //       args: [4],
+  //       kwargs: {
+  //         fields: ['id', 'name'],
+  //       },
+  //     },
+  //     id: Math.floor(Math.random() * 1000 * 1000 * 1000),
+  //   })
+  // }
 }

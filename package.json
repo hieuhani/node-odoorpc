@@ -1,15 +1,17 @@
 {
   "name": "node-odoorpc",
   "version": "1.0.0",
-  "main": "index.js",
   "author": "hieuhani",
   "license": "MIT",
+  "main": "dist/odoorpc",
+  "typings": "dist/types",
   "scripts": {
     "build": "tsc",
-    "dev": "ts-node -O '{\"module\": \"commonjs\"}' example.ts"
+    "dev": "ts-node examples/example.ts"
   },
   "dependencies": {
-    "axios": "^0.18.0"
+    "axios": "^0.18.0",
+    "lodash.assign": "^4.2.0"
   },
   "devDependencies": {
     "ts-node": "^5.0.1",
