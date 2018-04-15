@@ -25,7 +25,6 @@ export class OdooRPC {
   }
 
   get sessionId(): any {
-    this.browserRequired()
     return localStorage.getItem(this.config.tokenKey)
   }
 
@@ -41,7 +40,6 @@ export class OdooRPC {
   }
 
   public login(login: string, password: string) {
-    this.browserRequired()
     return this.exchangeToken(login, password).then(({ data }: ServerResponse) => {
       if (data.result.token) {
         localStorage.setItem(this.config.tokenKey, data.result.token)

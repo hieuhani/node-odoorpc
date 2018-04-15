@@ -1,1 +1,2 @@
-export * from './odoorpc'
+import { OdooRPC } from './odoorpc'
+export default OdooRPC
