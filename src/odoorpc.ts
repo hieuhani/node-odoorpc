@@ -8,7 +8,7 @@ import {
   QueryOutput,
 } from './types'
 
-export default class OdooRPC {
+export class OdooRPC {
   private options: OdooRPCOptions
   private config: OdooRPCConfig
   private request: Request
@@ -24,8 +24,9 @@ export default class OdooRPC {
     this.env = typeof window === 'undefined' ? Environment.Node : Environment.Browser
   }
 
-  get sessionId(): string {
-    return '756faece4f44c9b0e2c30445d8dcfd3a321b4c38'
+  get sessionId(): any {
+    this.browserRequired()
+    return localStorage.getItem(this.config.tokenKey)
   }
 
   public exchangeToken(login: string, password: string) {

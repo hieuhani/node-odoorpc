@@ -1,4 +1,4 @@
-import OdooRPC from '../src/odoorpc'
+import { OdooRPC } from '../src'
 
 const odoo = new OdooRPC({
   domain: 'http://localhost',
