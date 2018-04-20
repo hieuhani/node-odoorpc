@@ -20,8 +20,7 @@
     "email": "hieutran.fu@gmail.com"
   },
   "dependencies": {
-    "axios": "^0.18.0",
-    "lodash.assign": "^4.2.0"
+    "axios": "^0.18.0"
   },
   "devDependencies": {
     "rimraf": "^2.6.2",

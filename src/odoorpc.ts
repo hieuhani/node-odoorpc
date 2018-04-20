@@ -1,4 +1,3 @@
-import * as assign from 'lodash.assign'
 import Request, { ServerResponse } from './request'
 import {
   Environment,
@@ -82,7 +81,7 @@ export class OdooRPC {
         params.args = options.args || []
         params.model = options.model
         params.method = options.method
-        params.kwargs = assign(params.kwargs, {}, options.kwargs)
+        params.kwargs = Object.assign(params.kwargs, {}, options.kwargs)
         params.kwargs.context = options.context || params.context || params.kwargs.context
     }
 
