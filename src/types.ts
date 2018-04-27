@@ -1,4 +1,11 @@
 import { AxiosResponse } from 'axios'
+import { OdooRPC } from './odoorpc'
+
+export interface Storage {
+  getItem: (key: string) => Promise<any>,
+  setItem: (key: string, value: string) => Promise<any>,
+  removeItem: (key: string) => Promise<any>,
+}
 
 export interface OdooRPCOptions {
   domain?: string,
@@ -8,6 +15,7 @@ export interface OdooRPCOptions {
 
 export interface OdooRPCConfig {
   tokenKey: string,
+  storage?: Storage,
 }
 
 export enum Environment {
@@ -39,4 +47,5 @@ export interface QueryOutput {
 
 export {
   AxiosResponse as ServerResponse,
+  OdooRPC,
 }

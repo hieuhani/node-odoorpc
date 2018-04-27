@@ -1,6 +1,5 @@
 import Request, { ServerResponse } from './request'
 import {
-  Environment,
   OdooRPCConfig,
   OdooRPCOptions,
   QueryOptions,
@@ -11,24 +10,25 @@ export class OdooRPC {
   private options: OdooRPCOptions
   private config: OdooRPCConfig
   private request: Request
-  private env: Environment
 
   constructor(options: OdooRPCOptions, config?: OdooRPCConfig) {
     this.options = options
-    this.config = config || {
-      tokenKey: 'session_id',
-    }
+    this.config = config
     const port = this.options.port ? `:${this.options.port}` : ''
-    this.request = new Request(`${this.options.domain}${port}`, this.sessionId)
-    this.env = typeof window === 'undefined' ? Environment.Node : Environment.Browser
+    this.request = new Request(
+      `${this.options.domain}${port}`,
+      this.options.database,
+      this.getSessionId.bind(this),
+    )
   }
 
-  get sessionId(): any {
-    return localStorage.getItem(this.config.tokenKey)
+  public async getSessionId(): Promise<string> {
+    return this.config.storage.getItem(this.config.tokenKey)
   }
 
-  public isLoggedUser(): boolean {
-    return !!this.sessionId
+  public async isLoggedUser(): Promise<boolean> {
+    const sessionId = await this.getSessionId()
+    return !!sessionId
   }
 
   public exchangeToken(login: string, password: string) {
@@ -45,15 +45,19 @@ export class OdooRPC {
   public login(login: string, password: string) {
     return this.exchangeToken(login, password).then(({ data }: ServerResponse) => {
       if (data.result.token) {
-        localStorage.setItem(this.config.tokenKey, data.result.token)
-        return Promise.resolve(true)
+        return this.config.storage.setItem(this.config.tokenKey, data.result.token)
       }
       throw new Error('Invalid login name or password')
     })
   }
 
-  public checkLoggedUser() {
-    if (!this.sessionId) {
+  public logout() {
+    return this.config.storage.removeItem(this.config.tokenKey)
+  }
+
+  public async checkLoggedUser() {
+    const sessionId = await this.getSessionId()
+    if (!sessionId) {
       throw new Error('Login required')
     }
   }
@@ -61,12 +65,6 @@ export class OdooRPC {
   public query(params: QueryOptions, options?: any): Promise<ServerResponse> {
     const query = this.buildQuery(params)
     return this.request.rpc(query.route, query.params, options)
-  }
-
-  private browserRequired() {
-    if (this.env !== Environment.Browser) {
-      throw new Error('Run only on browser mode')
-    }
   }
 
   private buildQuery(options: QueryOptions): QueryOutput {

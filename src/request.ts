@@ -4,18 +4,25 @@ import { ServerResponse } from './types'
 export default class Request {
   private request: any
 
-  constructor(baseUri: string, sessionId?: string) {
+  constructor(baseUri: string, database?: string, getSessionId?: () => Promise<string>) {
     const config: { [key: string]: any } = {
       headers: {
         'Content-Type': 'application/json',
       },
       baseURL: baseUri,
     }
-    if (sessionId) {
-      config.headers['X-Openerp-Session-Id'] = sessionId
+
+    if (database) {
+      config.headers['X-Database-Name'] = database
     }
     const axiosInstance = axios.create(config)
-    this.request = axiosInstance.post
+    this.request = async (uri: string, payload?: { [key: string]: any }) => {
+      const sessionId = await getSessionId()
+      if (sessionId) {
+        axiosInstance.defaults.headers.common['X-Openerp-Session-Id'] = sessionId
+      }
+      return axiosInstance.post(uri, payload)
+    }
   }
 
   public execute(uri: string, payload?: { [key: string]: any }): Promise<ServerResponse> {
