@@ -15,20 +15,39 @@ export class OdooRPC {
     this.options = options
     this.config = config
     const port = this.options.port ? `:${this.options.port}` : ''
+    const protocol = this.options.https ? 'https://' : 'http://'
+    let subDomain = ''
+    let explicitDatabase
+    if (this.options.useSaaS) {
+      subDomain = `${this.options.database}.`
+    } else {
+      explicitDatabase = this.options.database
+    }
     this.request = new Request(
-      `${this.options.domain}${port}`,
-      this.options.database,
+      `${protocol}${subDomain}${this.options.domain}${port}`,
+      explicitDatabase,
       this.getSessionId.bind(this),
     )
   }
 
-  public async getSessionId(): Promise<string> {
+  public getSessionId(): Promise<string> {
     return this.config.storage.getItem(this.config.tokenKey)
   }
 
-  public async isLoggedUser(): Promise<boolean> {
-    const sessionId = await this.getSessionId()
-    return !!sessionId
+  public getSessionData(): Promise<any> {
+    if (!this.config.dataKey) {
+      return Promise.resolve(null)
+    }
+    return this.config.storage.getItem(this.config.dataKey)
+      .then((result) => Promise.resolve(JSON.parse(result)))
+  }
+
+  public isLoggedUser(): Promise<boolean> {
+    return this.getSessionId().then((sessionId) => {
+      return Promise.resolve(!!sessionId)
+    }).catch((e) => {
+      return Promise.resolve(false)
+    })
   }
 
   public exchangeToken(login: string, password: string) {
@@ -42,17 +61,34 @@ export class OdooRPC {
     })
   }
 
-  public login(login: string, password: string) {
+  public login(login: string, password: string): Promise<any> {
     return this.exchangeToken(login, password).then(({ data }: ServerResponse) => {
       if (data.result.token) {
-        return this.config.storage.setItem(this.config.tokenKey, data.result.token)
+        const result = {
+          [this.config.tokenKey]: data.result.token,
+        }
+        const promises = [
+          this.config.storage.setItem(this.config.tokenKey, data.result.token),
+        ]
+        if (this.config.dataKey) {
+          const payload = JSON.stringify(data.result.payload)
+          promises.push(this.config.storage.setItem(this.config.dataKey, payload))
+          result[this.config.dataKey] = data.result.payload
+        }
+        return Promise.all(promises).then(() => Promise.resolve(result))
       }
       throw new Error('Invalid login name or password')
     })
   }
 
   public logout() {
-    return this.config.storage.removeItem(this.config.tokenKey)
+    const promises = [
+      this.config.storage.removeItem(this.config.tokenKey),
+    ]
+    if (this.config.dataKey) {
+      promises.push(this.config.storage.removeItem(this.config.dataKey))
+    }
+    return Promise.all(promises)
   }
 
   public async checkLoggedUser() {
@@ -67,6 +103,14 @@ export class OdooRPC {
     return this.request.rpc(query.route, query.params, options)
   }
 
+  public poll() {
+    const params = {
+      channels: [],
+      last: 0,
+    }
+    return this.request.rpc('/longpolling/poll', params)
+  }
+
   private buildQuery(options: QueryOptions): QueryOutput {
     let route = ''
     const params = options.params || {}
@@ -79,7 +123,7 @@ export class OdooRPC {
         params.args = options.args || []
         params.model = options.model
         params.method = options.method
-        params.kwargs = Object.assign(params.kwargs, {}, options.kwargs)
+        params.kwargs = Object.assign({}, params.kwargs, options.kwargs)
         params.kwargs.context = options.context || params.context || params.kwargs.context
     }
 

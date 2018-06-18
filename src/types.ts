@@ -11,11 +11,14 @@ export interface OdooRPCOptions {
   domain?: string,
   port?: number,
   database?: string,
+  https?: boolean,
+  useSaaS?: boolean,
 }
 
 export interface OdooRPCConfig {
   tokenKey: string,
   storage?: Storage,
+  dataKey?: string,
 }
 
 export enum Environment {
