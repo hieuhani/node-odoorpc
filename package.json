@@ -1,10 +1,13 @@
 {
   "name": "node-odoorpc",
-  "version": "1.0.5",
+  "version": "1.0.7",
   "author": "hieuhani",
   "license": "MIT",
   "main": "dist/odoorpc",
   "typings": "dist/types",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "tsc",
