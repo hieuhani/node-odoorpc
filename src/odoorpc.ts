@@ -1,3 +1,4 @@
+import { AxiosRequestConfig } from 'axios'
 import Request, { ServerResponse } from './request'
 import {
   OdooRPCConfig,
@@ -10,6 +11,7 @@ export class OdooRPC {
   private options: OdooRPCOptions
   private config: OdooRPCConfig
   private request: Request
+  private baseUrl: string
 
   constructor(options: OdooRPCOptions, config?: OdooRPCConfig) {
     this.options = options
@@ -23,12 +25,14 @@ export class OdooRPC {
     } else {
       explicitDatabase = this.options.database
     }
+    this.baseUrl = `${protocol}${subDomain}${this.options.domain}${port}`
     this.request = new Request(
-      `${protocol}${subDomain}${this.options.domain}${port}`,
+      this.baseUrl,
       explicitDatabase,
       this.getSessionId.bind(this),
     )
   }
+
 
   public getSessionId(): Promise<string> {
     return this.config.storage.getItem(this.config.tokenKey)
@@ -61,6 +65,10 @@ export class OdooRPC {
     })
   }
 
+  public fetch(options: AxiosRequestConfig): Promise<any> {
+    return this.request.fetch(options)
+  }
+  
   public login(login: string, password: string): Promise<any> {
     return this.exchangeToken(login, password).then(({ data }: ServerResponse) => {
       if (data.result.token) {
