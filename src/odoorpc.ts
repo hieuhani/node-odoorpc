@@ -5,6 +5,7 @@ import {
   OdooRPCOptions,
   QueryOptions,
   QueryOutput,
+  AuthResponse,
 } from './types'
 
 export class OdooRPC {
@@ -29,33 +30,32 @@ export class OdooRPC {
     this.request = new Request(
       this.baseUrl,
       explicitDatabase,
-      this.getSessionId.bind(this),
+      this.getAuthData.bind(this),
     )
   }
 
-
-  public getSessionId(): Promise<string> {
-    return this.config.storage.getItem(this.config.tokenKey)
-  }
-
-  public getSessionData(): Promise<any> {
+  public async getAuthData(): Promise<AuthResponse> {
     if (!this.config.dataKey) {
       return Promise.resolve(null)
     }
-    return this.config.storage.getItem(this.config.dataKey)
-      .then((result) => Promise.resolve(JSON.parse(result)))
+    try {
+      const result = await this.config.storage.getItem(this.config.dataKey)
+      return Promise.resolve(JSON.parse(result))
+    } catch (e) {
+      return Promise.resolve(null)
+    }
   }
 
   public isLoggedUser(): Promise<boolean> {
-    return this.getSessionId().then((sessionId) => {
-      return Promise.resolve(!!sessionId)
+    return this.getAuthData().then((authData) => {
+      return Promise.resolve(!!authData)
     }).catch((e) => {
       return Promise.resolve(false)
     })
   }
 
   public exchangeToken(login: string, password: string) {
-    return this.request.execute('auth/exchange_token', {
+    return this.request.execute('exchange_token', {
       jsonrpc: '2.0',
       method: 'call',
       params: {
@@ -71,44 +71,49 @@ export class OdooRPC {
   
   public login(login: string, password: string): Promise<any> {
     return this.exchangeToken(login, password).then(({ data }: ServerResponse) => {
-      if (data.result.token) {
-        const result = {
-          [this.config.tokenKey]: data.result.token,
-        }
-        const promises = [
-          this.config.storage.setItem(this.config.tokenKey, data.result.token),
-        ]
-        if (this.config.dataKey) {
-          const payload = JSON.stringify(data.result.payload)
-          promises.push(this.config.storage.setItem(this.config.dataKey, payload))
-          result[this.config.dataKey] = data.result.payload
-        }
-        return Promise.all(promises).then(() => Promise.resolve(result))
+      if (data.result.success) {
+        const result = data.result.data
+        return this.config.storage.setItem(this.config.dataKey, JSON.stringify(result))
+          .then(() => Promise.resolve(result))
       }
       throw new Error('Invalid login name or password')
     })
   }
 
-  public logout() {
-    const promises = [
-      this.config.storage.removeItem(this.config.tokenKey),
-    ]
-    if (this.config.dataKey) {
-      promises.push(this.config.storage.removeItem(this.config.dataKey))
+  public async refreshToken() {
+    const authData = await this.getAuthData()
+    if (authData && authData.sign_in_token) {
+      const { data } = await this.request.execute('refresh_session_id', {
+        jsonrpc: '2.0',
+        method: 'call',
+        params: {
+          sign_in_token: authData.sign_in_token,
+        },
+      })
+      if (data.result.success) {
+        const result = data.result.data
+        await this.config.storage.setItem(this.config.dataKey, JSON.stringify(result))
+        return Promise.resolve(result)
+      }
     }
-    return Promise.all(promises)
+    throw new Error('Invalid refresh token')
   }
 
-  public async checkLoggedUser() {
-    const sessionId = await this.getSessionId()
-    if (!sessionId) {
-      throw new Error('Login required')
-    }
+  public logout() {
+    return this.config.storage.removeItem(this.config.dataKey)
   }
 
   public query(params: QueryOptions, options?: any): Promise<ServerResponse> {
     const query = this.buildQuery(params)
-    return this.request.rpc(query.route, query.params, options)
+    const queryFunc = this.request.rpc(query.route, query.params, options)
+    let tried = false
+    return queryFunc.then((res) => {
+      if (res.data.code === 100 && !tried) {
+        tried = true
+        return this.refreshToken().then(() => queryFunc)
+      }
+      return Promise.resolve(res)
+    })
   }
 
   public poll() {

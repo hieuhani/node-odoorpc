@@ -16,7 +16,6 @@ export interface OdooRPCOptions {
 }
 
 export interface OdooRPCConfig {
-  tokenKey: string,
   storage?: Storage,
   dataKey?: string,
 }
@@ -46,6 +45,13 @@ export interface QueryOptions {
 export interface QueryOutput {
   route: string,
   params: any,
+}
+
+export interface AuthResponse {
+  session_id: string,
+  sign_in_token: string,
+  db_name: string,
+  user_id: string,
 }
 
 export {
