@@ -51,7 +51,7 @@ export interface AuthResponse {
   session_id: string,
   sign_in_token: string,
   db_name: string,
-  user_id: string,
+  uid: string,
 }
 
 export {

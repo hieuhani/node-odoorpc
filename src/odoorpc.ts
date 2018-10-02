@@ -68,7 +68,7 @@ export class OdooRPC {
   public fetch(options: AxiosRequestConfig): Promise<any> {
     return this.request.fetch(options)
   }
-  
+
   public login(login: string, password: string): Promise<any> {
     return this.exchangeToken(login, password).then(({ data }: ServerResponse) => {
       if (data.result.success) {
@@ -88,10 +88,12 @@ export class OdooRPC {
         method: 'call',
         params: {
           sign_in_token: authData.sign_in_token,
+          uid: authData.uid,
         },
       })
       if (data.result.success) {
         const result = data.result.data
+        await this.config.storage.removeItem(this.config.dataKey)
         await this.config.storage.setItem(this.config.dataKey, JSON.stringify(result))
         return Promise.resolve(result)
       }
@@ -108,9 +110,13 @@ export class OdooRPC {
     const queryFunc = this.request.rpc(query.route, query.params, options)
     let tried = false
     return queryFunc.then((res) => {
-      if (res.data.code === 100 && !tried) {
+      if (res.data.error && res.data.error.code === 100 && !tried) {
         tried = true
-        return this.refreshToken().then(() => queryFunc)
+        return this.refreshToken().then(() => {
+          return queryFunc.then(res => {
+            return Promise.resolve(res)
+          })
+        })
       }
       return Promise.resolve(res)
     })
