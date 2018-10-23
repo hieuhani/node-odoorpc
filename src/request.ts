@@ -1,13 +1,13 @@
 import axios, { AxiosInstance } from 'axios'
-import { ServerResponse } from './types'
+import { ServerResponse, AuthResponse } from './types'
 
 export default class Request {
   private request?: (uri: string, payload: any) => Promise<ServerResponse>
   private axiosInstance: AxiosInstance
-  private getSessionId: () => Promise<string>
+  private getAuthData: () => Promise<AuthResponse>
   private initialized: boolean
 
-  constructor(baseUri: string, database?: string, getSessionId?: () => Promise<string>) {
+  constructor(baseUri: string, database?: string, getAuthData?: () => Promise<AuthResponse>) {
     const config: { [key: string]: any } = {
       headers: {
         'Content-Type': 'application/json',
@@ -19,7 +19,7 @@ export default class Request {
       config.headers['X-Database-Name'] = database
     }
 
-    this.getSessionId = getSessionId
+    this.getAuthData = getAuthData
     this.axiosInstance = axios.create(config)
 
     this.request = async (uri: string, payload?: { [key: string]: any }) => {
@@ -44,13 +44,14 @@ export default class Request {
 
   private async initDefaultHeader() {
     if (!this.initialized) {
-      const sessionId = await this.getSessionId()
-      if (sessionId) {
-        this.axiosInstance.defaults.headers.common['X-Openerp-Session-Id'] = sessionId
+      const authData = await this.getAuthData()
+      if (authData && authData.session_id) {
+        this.axiosInstance.defaults.headers.common['X-Openerp-Session-Id'] = authData.session_id
       }
       this.initialized = true
     } 
   }
+
   private decorateBody(method: string, params: { [key: string]: any}): any {
     return {
       jsonrpc: '2.0',
