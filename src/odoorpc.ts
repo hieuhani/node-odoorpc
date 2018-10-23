@@ -107,19 +107,7 @@ export class OdooRPC {
 
   public query(params: QueryOptions, options?: any): Promise<ServerResponse> {
     const query = this.buildQuery(params)
-    const queryFunc = this.request.rpc(query.route, query.params, options)
-    let tried = false
-    return queryFunc.then((res) => {
-      if (res.data.error && res.data.error.code === 100 && !tried) {
-        tried = true
-        return this.refreshToken().then(() => {
-          return queryFunc.then(res => {
-            return Promise.resolve(res)
-          })
-        })
-      }
-      return Promise.resolve(res)
-    })
+    return this.request.rpc(query.route, query.params, options)
   }
 
   public poll() {
