@@ -80,11 +80,11 @@ export class OdooRPC {
   }
 
   public login(login: string, password: string): Promise<any> {
-    return this.exchangeToken(login, password).then(({ data }) => {
+    return this.exchangeToken(login, password).then((data) => {
       if (!data.result) {
         throw new Error('This database does not exist or set up properly')
       }
-      if (data.result.success) {
+      if (data.result.access_token) {
         const result = data.result.data
         return this.config.storage.setItem(this.config.dataKey, JSON.stringify(result))
           .then(() => Promise.resolve(result))
