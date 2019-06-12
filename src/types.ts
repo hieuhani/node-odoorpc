@@ -1,4 +1,3 @@
-import { AxiosResponse } from 'axios'
 import { OdooRPC } from './odoorpc'
 
 export interface Storage {
@@ -56,6 +55,5 @@ export interface AuthResponse {
 }
 
 export {
-  AxiosResponse as ServerResponse,
   OdooRPC,
 }

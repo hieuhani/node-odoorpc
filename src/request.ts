@@ -1,7 +1,7 @@
-import { ServerResponse, AuthResponse } from './types'
+import { AuthResponse } from './types'
 
 export default class Request {
-  private request?: (uri: string, payload: any) => Promise<ServerResponse>
+  private request?: (uri: string, payload: any) => Promise<any>
   private getAuthData: () => Promise<AuthResponse>
   private initialized: boolean
   private baseUri: string
@@ -30,7 +30,7 @@ export default class Request {
     }
   }
 
-  public execute(uri: string, payload?: { [key: string]: any }): Promise<ServerResponse> {
+  public execute(uri: string, payload?: { [key: string]: any }): Promise<any> {
     return this.request(uri, payload || {})
   }
 
@@ -49,7 +49,7 @@ export default class Request {
     }).then(response => response.json())
   }
 
-  public rpc(route: string, params: any, options?: any): Promise<ServerResponse> {
+  public rpc(route: string, params: any, options?: any): Promise<any> {
     const data = this.decorateBody('call', params)
     return this.execute(route, data)
   }
@@ -72,8 +72,4 @@ export default class Request {
       id: Math.floor(Math.random() * 1000 * 1000 * 1000),
     }
   }
-}
-
-export {
-  ServerResponse,
 }

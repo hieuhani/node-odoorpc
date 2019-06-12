@@ -1,5 +1,4 @@
-import { AxiosRequestConfig } from 'axios'
-import Request, { ServerResponse } from './request'
+import Request from './request'
 import {
   OdooRPCConfig,
   OdooRPCOptions,
@@ -76,12 +75,12 @@ export class OdooRPC {
     })
   }
 
-  public fetch(options: AxiosRequestConfig): Promise<any> {
+  public fetch(options): Promise<any> {
     return this.request.fetch(options)
   }
 
   public login(login: string, password: string): Promise<any> {
-    return this.exchangeToken(login, password).then(({ data }: ServerResponse) => {
+    return this.exchangeToken(login, password).then(({ data }) => {
       if (!data.result) {
         throw new Error('This database does not exist or set up properly')
       }
@@ -119,7 +118,7 @@ export class OdooRPC {
     return this.config.storage.removeItem(this.config.dataKey)
   }
 
-  public query(params: QueryOptions, options?: any): Promise<ServerResponse> {
+  public query(params: QueryOptions, options?: any): Promise<any> {
     const query = this.buildQuery(params)
     return this.request.rpc(query.route, query.params, options)
   }
