@@ -26,7 +26,7 @@ export default class Request {
         method: 'POST',
         headers: this.headers,
         body: JSON.stringify(payload),
-      })
+      }).then(response => response.json())
     }
   }
 
