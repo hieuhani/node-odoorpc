@@ -1,6 +1,6 @@
 {
   "name": "node-odoorpc",
-  "version": "2.0.1",
+  "version": "2.0.3",
   "author": "hieuhani",
   "license": "MIT",
   "main": "dist/odoorpc",
