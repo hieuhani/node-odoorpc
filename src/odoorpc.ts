@@ -54,6 +54,17 @@ export class OdooRPC {
     })
   }
 
+  public getToken(login: string, password: string) {
+    return this.request.execute('get_token', {
+      jsonrpc: '2.0',
+      method: 'call',
+      params: {
+        login,
+        password,
+      },
+    })
+  }
+
   public exchangeToken(login: string, password: string) {
     return this.request.execute('exchange_token', {
       jsonrpc: '2.0',

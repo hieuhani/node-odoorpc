@@ -45,8 +45,8 @@ export default class Request {
   private async initDefaultHeader() {
     if (!this.initialized) {
       const authData = await this.getAuthData()
-      if (authData && authData.session_id) {
-        this.axiosInstance.defaults.headers.common['X-Openerp-Session-Id'] = authData.session_id
+      if (authData && authData.access_token) {
+        this.axiosInstance.defaults.headers.common['Authentication'] = `Bearer ${authData.access_token}`
       }
       this.initialized = true
     } 

@@ -49,6 +49,7 @@ export interface QueryOutput {
 
 export interface AuthResponse {
   session_id: string,
+  access_token: string,
   sign_in_token: string,
   db_name: string,
   uid: string,
