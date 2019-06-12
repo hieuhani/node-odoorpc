@@ -22,11 +22,21 @@ export default class Request {
 
     this.request = async (uri: string, payload?: { [key: string]: any }) => {
       await this.initDefaultHeader()
+      if (uri.startsWith('/')) {
+        uri = uri.slice(1)
+      }
       return fetch(`${this.baseUri}/${uri}`, {
         method: 'POST',
         headers: this.headers,
         body: JSON.stringify(payload),
       }).then(response => response.json())
+      .then(json => {
+        if (json.error) {
+          return Promise.reject(json.error.data)
+        }
+        return Promise.resolve(json)
+      })
+      
     }
   }
 
@@ -39,14 +49,20 @@ export default class Request {
       throw new Error('options must be specified')
     }
     await this.initDefaultHeader()
-    if (options.url && options.url.startsWidth('')) {
-      options.url = options.url.splice(1)
+    if (options.url && options.url.startsWith('/')) {
+      options.url = options.url.slice(1)
     }
-    return fetch(`${this.baseUri}${options.url}`, {
+    return fetch(`${this.baseUri}/${options.url}`, {
       method: options.method,
       headers: this.headers,
       body: JSON.stringify(options.data),
     }).then(response => response.json())
+    .then(json => {
+      if (json.error) {
+        return Promise.reject(json.error.data)
+      }
+      return Promise.resolve(json)
+    })
   }
 
   public rpc(route: string, params: any, options?: any): Promise<any> {
@@ -58,7 +74,7 @@ export default class Request {
     if (!this.initialized) {
       const authData = await this.getAuthData()
       if (authData && authData.access_token) {
-        this.headers['Authentication'] = `Bearer ${authData.access_token}`
+        this.headers['Authorization'] = `Bearer ${authData.access_token}`
       }
       this.initialized = true
     } 
