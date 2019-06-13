@@ -75,8 +75,8 @@ export default class Request {
       const authData = await this.getAuthData()
       if (authData && authData.access_token) {
         this.headers['Authorization'] = `Bearer ${authData.access_token}`
+        this.initialized = true
       }
-      this.initialized = true
     } 
   }
 
