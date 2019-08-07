@@ -84,7 +84,7 @@ export class OdooRPC {
       if (!data.result) {
         throw new Error('This database does not exist or set up properly')
       }
-      if (data.result.data.access_token) {
+      if (data.result.success && data.result.data.access_token) {
         const result = data.result.data
         return this.config.storage.setItem(this.config.dataKey, JSON.stringify(result))
           .then(() => Promise.resolve(result))
